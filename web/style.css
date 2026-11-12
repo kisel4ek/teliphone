@@ -1,0 +1,292 @@
+:root {
+  --bg-color: #F2F2F7;
+  --card-bg: #FFFFFF;
+  --text-primary: #000000;
+  --text-secondary: #8E8E93;
+  --accent: #007AFF;
+  --accent-light: rgba(0, 122, 255, 0.12);
+  --success: #34C759;
+  --success-light: rgba(52, 199, 89, 0.15);
+  --warning: #FF9500;
+  --border-color: rgba(60, 60, 67, 0.12);
+  --nav-bg: rgba(242, 242, 247, 0.85);
+  --nav-border: rgba(60, 60, 67, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #000000;
+    --card-bg: #1C1C1E;
+    --text-primary: #FFFFFF;
+    --text-secondary: #8E8E93;
+    --accent: #0A84FF;
+    --accent-light: rgba(10, 132, 255, 0.15);
+    --success: #30D158;
+    --success-light: rgba(48, 209, 88, 0.18);
+    --warning: #FF9F0A;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --nav-bg: rgba(28, 28, 30, 0.85);
+    --nav-border: rgba(255, 255, 255, 0.15);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  line-height: 1.4;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 40px;
+}
+
+/* Верхняя панель (iOS Navigation Bar) */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--nav-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid var(--nav-border);
+  padding: env(safe-area-inset-top, 16px) 16px 12px 16px;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: var(--card-bg);
+  border: 0.5px solid var(--border-color);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--warning);
+  transition: background-color 0.3s;
+}
+
+.status-dot.online {
+  background-color: var(--success);
+  box-shadow: 0 0 6px rgba(52, 199, 89, 0.6);
+}
+
+/* Поиск */
+.search-container {
+  margin-bottom: 10px;
+}
+
+.search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 36px;
+  border-radius: 10px;
+  border: none;
+  background-color: rgba(142, 142, 147, 0.18);
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%238E8E93" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>');
+  background-repeat: no-repeat;
+  background-position: 10px center;
+}
+
+/* Сегментный переключатель (Все / SMS / Уведомления) */
+.segmented-control {
+  display: flex;
+  background: rgba(142, 142, 147, 0.2);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.segment-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 6px 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.segment-btn.active {
+  background: var(--card-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  font-weight: 600;
+}
+
+/* Контейнер сообщений */
+main {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.message-card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border: 0.5px solid var(--border-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  animation: slideIn 0.25s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.sender-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.source-sms {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.source-notif {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.sender-name {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+}
+
+.time-stamp {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.message-body {
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.45;
+  word-break: break-word;
+  user-select: text;
+}
+
+/* Кнопка быстрого копирования кода */
+.code-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: -apple-system-monospaced, Menlo, monospace;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.1s, background-color 0.2s;
+}
+
+.code-chip:active {
+  transform: scale(0.96);
+}
+
+.code-chip.copied {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+/* Кнопка включения Push */
+.push-banner {
+  background: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.push-banner-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.push-btn {
+  background: var(--accent);
+  color: #FFFFFF;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Пустое состояние */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}

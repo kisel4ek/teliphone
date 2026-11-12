@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Teliphone</title>
+  
+  <!-- Настройки для iOS PWA и Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Teliphone">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Верхняя навигационная панель в стиле iOS -->
+  <header>
+    <div class="header-top">
+      <h1>Сообщения</h1>
+      <div class="status-badge">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Подключение...</span>
+      </div>
+    </div>
+
+    <!-- Поиск -->
+    <div class="search-container">
+      <input type="text" id="searchInput" class="search-input" placeholder="Поиск по номеру или тексту">
+    </div>
+
+    <!-- Сегментный переключатель -->
+    <div class="segmented-control">
+      <button class="segment-btn active" data-filter="all">Все</button>
+      <button class="segment-btn" data-filter="sms">SMS</button>
+      <button class="segment-btn" data-filter="notif">Уведомления</button>
+    </div>
+  </header>
+
+  <!-- Основной контент -->
+  <main>
+    <!-- Баннер включения Push-уведомлений -->
+    <div class="push-banner" id="pushBanner">
+      <div class="push-banner-text">🔔 Включить уведомления на экран блокировки</div>
+      <button class="push-btn" onclick="requestPushPermission()">Включить</button>
+    </div>
+
+    <!-- Список сообщений -->
+    <div id="messagesList">
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <h3>Загрузка сообщений...</h3>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
