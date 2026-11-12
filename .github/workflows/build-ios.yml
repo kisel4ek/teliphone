@@ -1,0 +1,55 @@
+name: Build iOS App
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ios/**"
+      - ".github/workflows/build-ios.yml"
+
+jobs:
+  build-ios:
+    name: 🍏 Сборка iOS (IPA / App)
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout репозитория
+        uses: actions/checkout@v4
+
+      - name: Установка XcodeGen
+        run: brew install xcodegen
+
+      - name: Генерация Xcode проекта через XcodeGen
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Компиляция iOS проекта
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project TeliphoneApp.xcodeproj \
+            -scheme TeliphoneApp \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Упаковка приложения в IPA и ZIP
+        working-directory: ios
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/Teliphone.app Payload/
+          zip -r Teliphone.ipa Payload
+          zip -r Teliphone-app.zip build/Build/Products/Release-iphoneos/Teliphone.app
+
+      - name: Выгрузка готовых файлов iOS в артефакты
+        uses: actions/upload-artifact@v4
+        with:
+          name: Teliphone-iOS-Build
+          path: |
+            ios/Teliphone.ipa
+            ios/Teliphone-app.zip
+          retention-days: 14
