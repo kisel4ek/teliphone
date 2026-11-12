@@ -28,7 +28,7 @@ jobs:
       - name: Генерация Gradle Wrapper
         working-directory: android
         run: |
-          gradle wrapper --gradle-version 8.5
+          gradle wrapper --gradle-version 8.7
           chmod +x gradlew
 
       - name: Сборка Android Debug APK
@@ -47,7 +47,7 @@ jobs:
   # ==========================================
   build-ios:
     name: 🍏 Сборка iOS (IPA / App)
-    runs-on: macos-13
+    runs-on: macos-latest
 
     steps:
       - name: Checkout репозитория
