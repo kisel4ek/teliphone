@@ -3,14 +3,12 @@ name: Build iOS App
 on:
   workflow_dispatch:
   push:
-    paths:
-      - "ios/**"
-      - ".github/workflows/build-ios.yml"
+    branches: [ "master", "main" ]
 
 jobs:
   build-ios:
     name: 🍏 Сборка iOS (IPA / App)
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout репозитория
