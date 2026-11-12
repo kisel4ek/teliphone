@@ -1,0 +1,24 @@
+# Android
+.gradle/
+build/
+*/build/
+*.apk
+*.aab
+local.properties
+.idea/
+*.iml
+
+# iOS
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.ipa
+Payload/
+*.zip
+
+# Secrets & Environment
+supabase/.env
+
+# OS
+.DS_Store
+Thumbs.db

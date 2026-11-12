@@ -1,0 +1,96 @@
+name: Build Android & iOS Apps
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  workflow_dispatch: # Позволяет запускать сборку вручную одной кнопкой в GitHub UI
+
+jobs:
+  # ==========================================
+  # СБОРКА ANDROID APK
+  # ==========================================
+  build-android:
+    name: 🤖 Сборка Android (APK)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout репозитория
+        uses: actions/checkout@v4
+
+      - name: Установка Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
+      - name: Установка Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Генерация Gradle Wrapper
+        working-directory: android
+        run: |
+          gradle wrapper --gradle-version 8.5
+          chmod +x gradlew
+
+      - name: Сборка Android Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Выгрузка готового APK в артефакты
+        uses: actions/upload-artifact@v4
+        with:
+          name: Teliphone-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  # ==========================================
+  # СБОРКА IOS (IPA / APP)
+  # ==========================================
+  build-ios:
+    name: 🍏 Сборка iOS (IPA / App)
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout репозитория
+        uses: actions/checkout@v4
+
+      - name: Установка XcodeGen
+        run: brew install xcodegen
+
+      - name: Генерация Xcode проекта через XcodeGen
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Компиляция iOS проекта через xcodebuild
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project TeliphoneApp.xcodeproj \
+            -scheme TeliphoneApp \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Создание IPA и ZIP архивов приложения
+        working-directory: ios
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/Teliphone.app Payload/
+          zip -r Teliphone.ipa Payload
+          zip -r Teliphone-app.zip build/Build/Products/Release-iphoneos/Teliphone.app
+
+      - name: Выгрузка готового iOS билда в артефакты
+        uses: actions/upload-artifact@v4
+        with:
+          name: Teliphone-iOS-Build
+          path: |
+            ios/Teliphone.ipa
+            ios/Teliphone-app.zip
+          retention-days: 14

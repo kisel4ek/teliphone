@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Teliphone Forwarder</string>
+    <string name="title_supabase_settings">Настройки Supabase</string>
+    <string name="hint_supabase_url">https://jhjesirowlvuahlqlxqt.supabase.co</string>
+    <string name="hint_supabase_key">sb_publishable_qGNun5qq4twlmJvGfX1WsA_vl_udqqq</string>
+    <string name="hint_device_name">Имя этого устройства (напр. Pixel 7)</string>
+    <string name="label_sms_forwarding">Пересылать входящие SMS</string>
+    <string name="label_notification_forwarding">Пересылать уведомления (WhatsApp, TG и т.д.)</string>
+    <string name="btn_save">Сохранить настройки</string>
+    <string name="btn_test">Отправить тестовое сообщение</string>
+    <string name="btn_permissions">Запросить разрешения SMS</string>
+    <string name="btn_battery">Отключить оптимизацию батареи</string>
+    <string name="btn_notif_access">Включить доступ к уведомлениям</string>
+    <string name="status_title">Статус и последний лог:</string>
+</resources>
