@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -12,6 +13,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -68,6 +70,16 @@ class MainActivity : AppCompatActivity() {
         binding.etDeviceName.setText(prefs.deviceName)
         binding.switchSms.isChecked = prefs.isSmsForwardingEnabled
         binding.switchNotifications.isChecked = prefs.isNotificationForwardingEnabled
+        updateSelectedAppsText()
+    }
+
+    private fun updateSelectedAppsText() {
+        val count = prefs.selectedPackages.size
+        binding.tvSelectedApps.text = if (prefs.forwardAllApps) {
+            "Режим: пересылать от ВСЕХ приложений"
+        } else {
+            "Выбрано приложений для пересылки: $count"
+        }
     }
 
     private fun setupListeners() {
@@ -94,6 +106,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        binding.btnSelectApps.setOnClickListener {
+            showAppSelectionDialog()
+        }
+
         binding.btnRequestSmsPermission.setOnClickListener {
             val permissions = mutableListOf(
                 Manifest.permission.RECEIVE_SMS,
@@ -118,6 +134,50 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showAppSelectionDialog() {
+        val pm = packageManager
+        // Получаем все установленные несистемные приложения
+        val installedApps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+            .filter { app ->
+                val isSystem = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                val isUpdatedSystem = (app.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                // Показываем пользовательские приложения либо популярные мессенджеры/банки
+                !isSystem || isUpdatedSystem || AppPreferences.defaultPackages.contains(app.packageName)
+            }
+            .sortedBy { app -> pm.getApplicationLabel(app).toString().lowercase() }
+
+        val appLabels = installedApps.map { pm.getApplicationLabel(it).toString() }.toTypedArray()
+        val appPackages = installedApps.map { it.packageName }
+        val checkedItems = BooleanArray(installedApps.size) { i ->
+            prefs.selectedPackages.contains(appPackages[i])
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Выберите приложения")
+            .setMultiChoiceItems(appLabels, checkedItems) { _, which, isChecked ->
+                checkedItems[which] = isChecked
+            }
+            .setPositiveButton("Сохранить") { _, _ ->
+                val newSelected = mutableSetOf<String>()
+                for (i in checkedItems.indices) {
+                    if (checkedItems[i]) {
+                        newSelected.add(appPackages[i])
+                    }
+                }
+                prefs.selectedPackages = newSelected
+                prefs.forwardAllApps = false
+                updateSelectedAppsText()
+                Toast.makeText(this, "Выбрано приложений: ${newSelected.size}", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton("Все приложения") { _, _ ->
+                prefs.forwardAllApps = true
+                updateSelectedAppsText()
+                Toast.makeText(this, "Включена пересылка от всех приложений", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
     private fun updateStatus() {
         val hasSmsPerm = ContextCompat.checkSelfPermission(
             this,
@@ -127,11 +187,12 @@ class MainActivity : AppCompatActivity() {
 
         val sb = StringBuilder()
         sb.append(prefs.lastLog).append("\n\n")
-        sb.append("SMS разрешение: ").append(if (hasSmsPerm) "✓ Да" else "✗ Нет").append("\n")
-        sb.append("Доступ к уведомлениям: ").append(if (hasNotifAccess) "✓ Да" else "✗ Нет").append("\n")
-        sb.append("Supabase настроен: ").append(if (prefs.isConfigured) "✓ Да" else "✗ Нет")
+        sb.append("SMS пересылка: ").append(if (hasSmsPerm) "✓ Активна" else "✗ Нет прав").append("\n")
+        sb.append("Доступ к уведомлениям: ").append(if (hasNotifAccess) "✓ Активен" else "✗ Выключен").append("\n")
+        sb.append("Фильтр приложений: ").append(if (prefs.forwardAllApps) "Все" else "${prefs.selectedPackages.size} выбрано")
 
         binding.tvStatus.text = sb.toString()
+        updateSelectedAppsText()
     }
 
     private fun sendTestMessage() {

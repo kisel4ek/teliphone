@@ -11,6 +11,7 @@ import com.teliphone.forwarder.data.SupabaseRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.Collections
 
 class SmsReceiver : BroadcastReceiver() {
 
@@ -26,17 +27,26 @@ class SmsReceiver : BroadcastReceiver() {
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         if (messages.isNullOrEmpty()) return
 
-        // Группируем части длинного составного SMS по отправителю
+        // Группируем части составного SMS
         val sender = messages[0].displayOriginatingAddress ?: "Неизвестный"
         val bodyBuilder = StringBuilder()
         for (sms in messages) {
             bodyBuilder.append(sms.displayMessageBody)
         }
-        val fullBody = bodyBuilder.toString()
+        val fullBody = bodyBuilder.toString().trim()
 
-        Log.d(TAG, "Получено SMS от $sender: $fullBody")
+        // Защита от дубликатов SMS (например, повторные intents от системы)
+        val deduplicationKey = "$sender:::$fullBody"
+        val now = System.currentTimeMillis()
+        val lastSent = sentSmsCache[deduplicationKey]
+        if (lastSent != null && (now - lastSent) < 45_000) {
+            Log.d(TAG, "Пропущено дублирующее SMS от $sender")
+            return
+        }
+        sentSmsCache[deduplicationKey] = now
 
-        // Выполняем асинхронную отправку в Supabase через goAsync()
+        Log.d(TAG, "Получено уникальное SMS от $sender: $fullBody")
+
         val pendingResult = goAsync()
         val repository = SupabaseRepository(context)
 
@@ -60,5 +70,10 @@ class SmsReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "SmsReceiver"
+        private val sentSmsCache = Collections.synchronizedMap(object : LinkedHashMap<String, Long>(50, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>?): Boolean {
+                return size > 100
+            }
+        })
     }
 }

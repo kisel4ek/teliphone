@@ -127,6 +127,32 @@
                     android:layout_height="wrap_content"
                     android:text="Пересылать Push/Уведомления (мессенджеры, банки)" />
 
+                <LinearLayout
+                    android:id="@+id/layoutAppSelection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="8dp"
+                    android:paddingTop="8dp">
+
+                    <TextView
+                        android:id="@+id/tvSelectedApps"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="6dp"
+                        android:text="Выбрано: Telegram, WhatsApp и банки"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btnSelectApps"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Выбрать приложения для пересылки" />
+
+                </LinearLayout>
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

@@ -64,6 +64,30 @@ class AppPreferences(context: Context) {
         get() = prefs.getString("last_log", "Служба готова к работе") ?: ""
         set(value) = prefs.edit().putString("last_log", value).apply()
 
+    var forwardAllApps: Boolean
+        get() = prefs.getBoolean("forward_all_apps", false)
+        set(value) = prefs.edit().putBoolean("forward_all_apps", value).apply()
+
+    var selectedPackages: Set<String>
+        get() = prefs.getStringSet("selected_packages", defaultPackages) ?: defaultPackages
+        set(value) = prefs.edit().putStringSet("selected_packages", value).apply()
+
     val isConfigured: Boolean
         get() = supabaseUrl.isNotEmpty() && supabaseAnonKey.isNotEmpty()
+
+    companion object {
+        val defaultPackages = setOf(
+            "org.telegram.messenger",
+            "org.telegram.plus",
+            "org.thunderdog.challegram", // Telegram X
+            "com.whatsapp",
+            "com.whatsapp.w4b",
+            "com.viber.voip",
+            "com.vkontakte.android",
+            "ru.sberbankmobile",
+            "com.idamob.tinkoff.android",
+            "ru.vtb24.mobilebanking.android",
+            "ru.alfabank.mobile.android"
+        )
+    }
 }
