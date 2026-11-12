@@ -18,16 +18,29 @@
   <!-- Верхняя навигационная панель в стиле iOS -->
   <header>
     <div class="header-top">
-      <h1>Сообщения</h1>
-      <div class="status-badge">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Подключение...</span>
+      <div class="header-left">
+        <h1>Сообщения</h1>
+        <div class="status-badge">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Подключение...</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <!-- Кнопка очистки всех сообщений -->
+        <button class="icon-btn btn-danger" id="btnClearAll" title="Очистить все" onclick="confirmClearAll()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+        </button>
       </div>
     </div>
 
     <!-- Поиск -->
     <div class="search-container">
-      <input type="text" id="searchInput" class="search-input" placeholder="Поиск по номеру или тексту">
+      <input type="text" id="searchInput" class="search-input" placeholder="Поиск по номеру, чату или тексту">
     </div>
 
     <!-- Сегментный переключатель -->
@@ -42,7 +55,7 @@
   <main>
     <!-- Баннер включения Push-уведомлений -->
     <div class="push-banner" id="pushBanner">
-      <div class="push-banner-text">🔔 Включить уведомления на экран блокировки</div>
+      <div class="push-banner-text">🔔 Включить push-уведомления на заблокированный экран</div>
       <button class="push-btn" onclick="requestPushPermission()">Включить</button>
     </div>
 
@@ -54,6 +67,18 @@
       </div>
     </div>
   </main>
+
+  <!-- Модальное окно подтверждения очистки -->
+  <div class="modal-overlay" id="clearModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-title">Очистить все сообщения?</div>
+      <div class="modal-desc">Вся история входящих сообщений будет безвозвратно удалена из базы данных.</div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-cancel" onclick="closeClearModal()">Отмена</button>
+        <button class="modal-btn modal-btn-danger" onclick="executeClearAll()">Удалить все</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

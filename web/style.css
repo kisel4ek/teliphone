@@ -8,8 +8,10 @@
   --success: #34C759;
   --success-light: rgba(52, 199, 89, 0.15);
   --warning: #FF9500;
+  --danger: #FF3B30;
+  --danger-light: rgba(255, 59, 48, 0.12);
   --border-color: rgba(60, 60, 67, 0.12);
-  --nav-bg: rgba(242, 242, 247, 0.85);
+  --nav-bg: rgba(242, 242, 247, 0.88);
   --nav-border: rgba(60, 60, 67, 0.2);
 }
 
@@ -24,8 +26,10 @@
     --success: #30D158;
     --success-light: rgba(48, 209, 88, 0.18);
     --warning: #FF9F0A;
+    --danger: #FF453A;
+    --danger-light: rgba(255, 69, 58, 0.18);
     --border-color: rgba(255, 255, 255, 0.1);
-    --nav-bg: rgba(28, 28, 30, 0.85);
+    --nav-bg: rgba(28, 28, 30, 0.88);
     --nav-border: rgba(255, 255, 255, 0.15);
   }
 }
@@ -44,7 +48,7 @@ body {
   line-height: 1.4;
   user-select: none;
   -webkit-font-smoothing: antialiased;
-  padding-bottom: 40px;
+  padding-bottom: 50px;
 }
 
 /* Верхняя панель (iOS Navigation Bar) */
@@ -66,10 +70,45 @@ header {
   margin-bottom: 12px;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 h1 {
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.5px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(142, 142, 147, 0.16);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+.icon-btn.btn-danger {
+  color: var(--danger);
+  background: var(--danger-light);
 }
 
 .status-badge {
@@ -152,6 +191,7 @@ main {
 }
 
 .message-card {
+  position: relative;
   background: var(--card-bg);
   border-radius: 14px;
   padding: 14px 16px;
@@ -211,9 +251,29 @@ main {
   letter-spacing: -0.2px;
 }
 
+.card-top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .time-stamp {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.btn-delete-item {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.btn-delete-item:hover, .btn-delete-item:active {
+  color: var(--danger);
 }
 
 .message-body {
@@ -289,4 +349,78 @@ main {
 .empty-icon {
   font-size: 48px;
   margin-bottom: 12px;
+}
+
+/* Модальное окно подтверждения удаления (в стиле iOS Alert) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 320px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  padding-top: 20px;
+  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 0 16px;
+}
+
+.modal-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.modal-buttons {
+  display: flex;
+  border-top: 0.5px solid var(--border-color);
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 12px 0;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.modal-btn-cancel {
+  color: var(--accent);
+  border-right: 0.5px solid var(--border-color);
+  font-weight: 500;
+}
+
+.modal-btn-danger {
+  color: var(--danger);
+  font-weight: 600;
 }

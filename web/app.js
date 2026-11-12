@@ -8,7 +8,60 @@ let searchQuery = "";
 let socket = null;
 let heartbeatInterval = null;
 
-// Инициализация звука уведомления (Web Audio API без внешних файлов)
+// Определение сводных системных уведомлений (group summary: "15 новых сообщений из 8 чатов")
+function isSummaryNotification(body) {
+  if (!body) return false;
+  const lower = body.toLowerCase();
+  // Регулярка для "X новых сообщений из Y чатов" / "X новых сообщений" / "X new messages"
+  const summaryRegex = /\d+\s+(нов(ых|ое|ые)?\s+)?(сообщен|диалог|чат)/i;
+  const englishSummary = /\d+\s+new\s+messages/i;
+  return summaryRegex.test(lower) || englishSummary.test(lower);
+}
+
+// Проверка дубликата (тот же отправитель и текст в интервале 45 секунд)
+function isDuplicateMessage(msg, existingList) {
+  const msgTime = new Date(msg.received_at).getTime();
+  return existingList.some(item => {
+    if (item.id === msg.id) return false; // сам с собой не сравниваем
+    if (item.sender === msg.sender && item.body === msg.body) {
+      const itemTime = new Date(item.received_at).getTime();
+      return Math.abs(msgTime - itemTime) < 45000; // 45 секунд
+    }
+    return false;
+  });
+}
+
+// Фильтрация входящего списка сообщений от дубликатов и сводок
+function cleanMessagesList(rawList) {
+  const seen = new Set();
+  const result = [];
+
+  for (const m of rawList) {
+    if (isSummaryNotification(m.body)) continue;
+
+    // Ключ дедупликации: отправитель + текст сообщения
+    const normBody = (m.body || "").trim();
+    const key = `${m.sender}:::${normBody}`;
+
+    // Если точный дубликат встретился рядом по времени
+    const mTime = new Date(m.received_at).getTime();
+    const hasRecentDup = result.some(item => {
+      if (item.sender === m.sender && item.body.trim() === normBody) {
+        const itemTime = new Date(item.received_at).getTime();
+        return Math.abs(mTime - itemTime) < 45000;
+      }
+      return false;
+    });
+
+    if (!hasRecentDup) {
+      result.push(m);
+    }
+  }
+
+  return result;
+}
+
+// Воспроизведение звука уведомления
 function playNotificationChime() {
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -28,7 +81,6 @@ function playNotificationChime() {
     osc.start();
     osc.stop(audioCtx.currentTime + 0.35);
 
-    // Тактильный отклик (iPhone вибро)
     if (navigator.vibrate) {
       navigator.vibrate([100, 50, 100]);
     }
@@ -37,13 +89,13 @@ function playNotificationChime() {
   }
 }
 
-// Загрузка истории сообщений (REST)
+// Загрузка сообщений из Supabase
 async function fetchMessages() {
   const statusDot = document.getElementById("statusDot");
   const statusText = document.getElementById("statusText");
 
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/messages?order=received_at.desc&limit=100`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/messages?order=received_at.desc&limit=150`, {
       headers: {
         "apikey": SUPABASE_ANON_KEY,
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
@@ -52,17 +104,18 @@ async function fetchMessages() {
     });
 
     if (res.ok) {
-      messages = await res.json();
+      const raw = await res.json();
+      messages = cleanMessagesList(raw);
       renderMessages();
     } else {
-      console.error("Ошибка загрузки сообщений", res.status);
+      console.error("Ошибка загрузки", res.status);
     }
   } catch (err) {
     console.error("Сбой сети", err);
   }
 }
 
-// Подключение к Supabase Realtime (WebSocket)
+// Подключение к Supabase Realtime
 function connectRealtime() {
   const host = new URL(SUPABASE_URL).host;
   const wsUrl = `wss://${host}/realtime/v1/websocket?apikey=${SUPABASE_ANON_KEY}&vsn=1.0.0`;
@@ -70,9 +123,7 @@ function connectRealtime() {
   const statusDot = document.getElementById("statusDot");
   const statusText = document.getElementById("statusText");
 
-  if (socket) {
-    socket.close();
-  }
+  if (socket) socket.close();
 
   socket = new WebSocket(wsUrl);
 
@@ -80,7 +131,6 @@ function connectRealtime() {
     statusDot.classList.add("online");
     statusText.textContent = "Live";
 
-    // Подписываемся на INSERT таблицы messages
     const joinMsg = {
       topic: "realtime:public:messages",
       event: "phx_join",
@@ -95,7 +145,6 @@ function connectRealtime() {
     };
     socket.send(JSON.stringify(joinMsg));
 
-    // Heartbeat каждые 25 сек
     clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(() => {
       if (socket.readyState === WebSocket.OPEN) {
@@ -114,22 +163,33 @@ function connectRealtime() {
       const msg = JSON.parse(event.data);
       if (msg.event === "postgres_changes") {
         const newRecord = msg.payload?.data?.record;
-        if (newRecord && !messages.some(m => m.id === newRecord.id)) {
-          messages.unshift(newRecord);
-          renderMessages();
-          playNotificationChime();
+        if (!newRecord) return;
 
-          // Если включены уведомления браузера
-          if (Notification.permission === "granted") {
-            new Notification(newRecord.source === "sms" ? `SMS от ${newRecord.sender}` : newRecord.sender, {
-              body: newRecord.body,
-              icon: "./icon.svg"
-            });
-          }
+        // Игнорируем сводные уведомления типа "15 новых сообщений из 8 чатов"
+        if (isSummaryNotification(newRecord.body)) {
+          console.log("Пропущено сводное уведомление:", newRecord.body);
+          return;
+        }
+
+        // Проверяем на дубликат с уже полученными сообщениями
+        if (isDuplicateMessage(newRecord, messages)) {
+          console.log("Пропущен дубликат:", newRecord.sender, newRecord.body);
+          return;
+        }
+
+        messages.unshift(newRecord);
+        renderMessages();
+        playNotificationChime();
+
+        if (Notification.permission === "granted") {
+          new Notification(newRecord.source === "sms" ? `SMS от ${newRecord.sender}` : newRecord.sender, {
+            body: newRecord.body,
+            icon: "./icon.svg"
+          });
         }
       }
     } catch (e) {
-      console.error("WebSocket message parse error", e);
+      console.error("WebSocket parse error", e);
     }
   };
 
@@ -137,13 +197,7 @@ function connectRealtime() {
     statusDot.classList.remove("online");
     statusText.textContent = "Подключение...";
     clearInterval(heartbeatInterval);
-    // Авто-переподключение через 3 секунды
     setTimeout(connectRealtime, 3000);
-  };
-
-  socket.onerror = (err) => {
-    console.error("WebSocket error", err);
-    socket.close();
   };
 }
 
@@ -163,17 +217,62 @@ function formatDate(isoString) {
   }
 }
 
+// Удаление одного сообщения
+window.deleteSingleMessage = async function(id) {
+  try {
+    messages = messages.filter(m => m.id !== id);
+    renderMessages();
+
+    await fetch(`${SUPABASE_URL}/rest/v1/messages?id=eq.${id}`, {
+      method: "DELETE",
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+  } catch (err) {
+    console.error("Ошибка при удалении сообщения", err);
+  }
+};
+
+// Модальное окно подтверждения очистки всех сообщений
+window.confirmClearAll = function() {
+  document.getElementById("clearModal").style.display = "flex";
+};
+
+window.closeClearModal = function() {
+  document.getElementById("clearModal").style.display = "none";
+};
+
+// Выполнение очистки всех сообщений
+window.executeClearAll = async function() {
+  closeClearModal();
+  messages = [];
+  renderMessages();
+
+  try {
+    // Удаляем все записи из таблицы messages
+    await fetch(`${SUPABASE_URL}/rest/v1/messages?id=not.is.null`, {
+      method: "DELETE",
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+  } catch (err) {
+    console.error("Ошибка при очистке сообщений", err);
+  }
+};
+
 // Рендеринг списка сообщений
 function renderMessages() {
   const container = document.getElementById("messagesList");
   if (!container) return;
 
   const filtered = messages.filter(m => {
-    // Фильтр по типу
     if (activeFilter === "sms" && m.source !== "sms") return false;
     if (activeFilter === "notif" && m.source === "sms") return false;
 
-    // Поиск
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const inSender = (m.sender || "").toLowerCase().includes(q);
@@ -201,13 +300,16 @@ function renderMessages() {
     const code = extractCode(m.body);
 
     return `
-      <div class="message-card">
+      <div class="message-card" id="msg-${m.id}">
         <div class="card-header">
           <div class="sender-group">
             <div class="source-icon ${iconClass}">${iconText}</div>
             <div class="sender-name">${escapeHtml(m.sender)}</div>
           </div>
-          <div class="time-stamp">${formatDate(m.received_at)}</div>
+          <div class="card-top-right">
+            <span class="time-stamp">${formatDate(m.received_at)}</span>
+            <button class="btn-delete-item" onclick="deleteSingleMessage('${m.id}')" title="Удалить">✕</button>
+          </div>
         </div>
         <div class="message-body">${escapeHtml(m.body)}</div>
         ${code ? `
@@ -220,7 +322,7 @@ function renderMessages() {
   }).join("");
 }
 
-// Копирование кода в буфер обмена
+// Копирование кода
 window.copyCode = function(button, code) {
   navigator.clipboard.writeText(code).then(() => {
     const oldHtml = button.innerHTML;
@@ -239,7 +341,7 @@ function escapeHtml(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-// Включение Push-уведомлений в Safari iOS
+// Включение Push в Safari iOS
 window.requestPushPermission = async function() {
   if (!("Notification" in window)) {
     alert("Уведомления не поддерживаются в этом браузере.");
@@ -258,25 +360,19 @@ window.requestPushPermission = async function() {
   }
 };
 
-// События интерфейса
 document.addEventListener("DOMContentLoaded", () => {
   fetchMessages();
   connectRealtime();
 
-  // Регистрация Service Worker
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").then(() => {
-      console.log("Service Worker зарегистрирован");
-    });
+    navigator.serviceWorker.register("./sw.js");
   }
 
-  // Скрытие баннера, если пуши уже разрешены
   if (window.Notification && Notification.permission === "granted") {
     const banner = document.getElementById("pushBanner");
     if (banner) banner.style.display = "none";
   }
 
-  // Поиск
   const searchInput = document.getElementById("searchInput");
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
@@ -285,7 +381,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Фильтры (Все / SMS / Уведомления)
   const buttons = document.querySelectorAll(".segment-btn");
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
